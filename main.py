@@ -35,12 +35,12 @@ def xgBoost(Train_x, Train_y):
 
     model = xgb.XGBClassifier(
         max_depth=8,
-        n_estimators=500,
+        n_estimators=2000,
         min_child_weight=300,
         colsample_bytree=0.8,
-        subsample=0.5,
+        subsample=0.8,
         eta=0.3,
-        seed=42
+        seed=17373331
     )
 
     model.fit(
@@ -66,8 +66,23 @@ def predict_to_csv(model, test):
 
 def lightGBM(Train_x, Train_y):
     X_train, X_valid, y_train, y_valid = train_test_split(Train_x, Train_y, test_size=0.15, random_state=10)
-    model = lgb.LGBMClassifier()
-    model.fit(X_train, y_train)
+    model = lgb.LGBMClassifier(
+        max_depth=10,  # 8
+        n_estimators=2000,
+        min_child_weight=300,
+        colsample_bytree=0.8,
+        subsample=0.8,
+        eta=0.3,
+        seed=42
+    )
+    model.fit(
+        X_train,
+        y_train,
+        eval_metric='auc',
+        eval_set=[(X_train, y_train), (X_valid, y_valid)],
+        verbose=True,
+        early_stopping_rounds=10
+    )
 
     X_valid = model.predict(X_valid)
     auc_score = roc_auc_score(y_valid, X_valid)
@@ -89,8 +104,8 @@ def main():
     df_test = pd.read_csv("test_df.csv")
     Train_x = df_train.drop(['user_id', 'merchant_id', 'label'], axis=1)
     Train_y = df_train['label']
-    model = xgBoost(Train_x, Train_y)
-    # model = lightGBM(Train_x, Train_y)
+    # model = xgBoost(Train_x, Train_y)
+    model = lightGBM(Train_x, Train_y)
 
     # Prediction
     predict_to_csv(model, df_test.drop(['user_id', 'merchant_id'], axis=1))
